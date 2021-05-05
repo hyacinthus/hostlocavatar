@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/esimov/caire"
 	"github.com/go-resty/resty/v2"
 	"github.com/hack-fan/x/xerr"
 	"github.com/nfnt/resize"
+	"github.com/oliamb/cutter"
 	_ "golang.org/x/image/webp"
 )
 
@@ -32,19 +32,20 @@ func Upload(input, agent, avatarURL string) error {
 		return xerr.Newf(400, "InvalidAvatarURL", "请检查传入的头像链接是否正确, %s", err)
 	}
 	defer resp.RawBody().Close() // nolint
-	// 智能切割正方形
-	p := &caire.Processor{
-		Square:     true,
-		FaceDetect: true,
-	}
-	buff := new(bytes.Buffer)
-	err = p.Process(resp.RawBody(), buff)
+	// 解析图像
+	avatar, _, err := image.Decode(resp.RawBody())
 	if err != nil {
 		return xerr.Newf(400, "InvalidAvatar", "不支持你传入的头像格式, %s", err)
 	}
-	tmp, _, err := image.Decode(buff)
+	// 切割正方形
+	tmp, err := cutter.Crop(avatar, cutter.Config{
+		Width:   1,
+		Height:  1,
+		Mode:    cutter.Centered,
+		Options: cutter.Ratio,
+	})
 	if err != nil {
-		return xerr.Newf(500, "CaireError", "智能切割正方形失败, %s", err)
+		return fmt.Errorf("切割正方形失败：%w", err)
 	}
 	// 从大到小缩小头像，tmp是个指针缩小后会被改变
 	a200 := hexImage(200, tmp)
