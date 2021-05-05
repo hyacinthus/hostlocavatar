@@ -13,7 +13,6 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/hack-fan/x/xerr"
 	"github.com/nfnt/resize"
-	"github.com/oliamb/cutter"
 	_ "golang.org/x/image/webp"
 )
 
@@ -37,20 +36,10 @@ func Upload(input, agent, avatarURL string) error {
 	if err != nil {
 		return xerr.Newf(400, "InvalidAvatar", "不支持你传入的头像格式, %s", err)
 	}
-	// 切割正方形
-	tmp, err := cutter.Crop(avatar, cutter.Config{
-		Width:   1,
-		Height:  1,
-		Mode:    cutter.Centered,
-		Options: cutter.Ratio,
-	})
-	if err != nil {
-		return fmt.Errorf("切割正方形失败：%w", err)
-	}
-	// 从大到小缩小头像，tmp是个指针缩小后会被改变
-	a200 := hexImage(200, tmp)
-	a120 := hexImage(120, tmp)
-	a48 := hexImage(48, tmp)
+	// 从大到小缩小头像，tmp是个指针缩小后也许会被改变
+	a200 := hexImage(200, avatar)
+	a120 := hexImage(120, avatar)
+	a48 := hexImage(48, avatar)
 	// 上传
 	return uploadAvatar(input, agent, a48, a120, a200)
 }
